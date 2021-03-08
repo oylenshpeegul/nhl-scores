@@ -2,9 +2,11 @@
 #+author: Tim Heaney
 #+date:   2021-03-08
 
-* Summarize latest games from the [[https://github.com/peruukki/nhl-score-api][nhl-score-api]]
+Summarize latest games from the [[https://github.com/peruukki/nhl-score-api][nhl-score-api]]
 
-** Inspired by [[https://github.com/Hamatti/nhl-235][nhl-235]]
+Inspired by [[https://github.com/Hamatti/nhl-235][nhl-235]]
+
+
 
 
 
