@@ -13,8 +13,26 @@ Inspired by [[https://github.com/Hamatti/nhl-235][nhl-235]]
 
 The original nhl-235 page highlighted the Finnish players in green, apparently. In thinking about how to do that, I thought it might be fun to put a flag for the nationality of every player. Unicode has flags, but my terminal wouldn't display them. I installed [[https://sw.kovidgoyal.net/kitty/][kitty]], which did.
 
+Now, the [[https://github.com/peruukki/nhl-score-api][nhl-score-api]] doesn't give a player's nationality, but the [[https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md][stats-api]] does. Since the scores are keyed on the players names, we have to drill down through the teams, to the rosters, to the people.
+
+Whew! That's an awful lot of API calls. Hopefully, we don't have to do it too often. Players can be traded, called up, and so on. But we're not tracking which team they're on--- only their names--- so it might not be as bad as you think. As long as there aren't any duplicates, we could just keep accumulating names without throwing any away.
+
+So, given a player's nationality, how do we display the flag? Well, the [[https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md][stats-api]] uses (its own?) three-letter codes for nationalities, while Unicode uses [[https://en.wikipedia.org/wiki/Regional_indicator_symbol][regional indicator symbols]]. Most of those are two letters. So we need to keep track of which three-letter codes map to which two-letter symbols.
+
+I don't even know what all the three-letter codes are. I wrote a little script to count the ones in currently in use.
+
+#+ATTR_HTML: :alt Running nationalities script.
+[[./images/nationalities.png]]
+
+I guess I'll have to wait for players from other countries to show up before I know what the codes are.
+
+
+
+
+
+
+
+
 #+ATTR_HTML: :alt Running latest-games with --flags option
 [[./images/lgf.png]]
-
-
 
