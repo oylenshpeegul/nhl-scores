@@ -4,6 +4,7 @@ use v5.28;
 use warnings;
 use experimental qw(signatures);
 use Encode qw(encode);
+use FindBin qw($Bin);
 use Getopt::Long::Descriptive;
 use Mojo::JSON qw(decode_json);
 use Mojo::UserAgent;
@@ -20,6 +21,7 @@ my ($opt, $usage) = describe_options(
      {default => 'https://nhl-score-api.herokuapp.com'}],
     ['flags|f', "print flag for each player"],
     ['help|h', "print usage message and exit", {shortcircuit => 1}],
+    ['players=s', 'path to players file', {default => "$Bin/players.json"}],
     ['verbose|v', "print extra stuff"],
 );
  
@@ -51,10 +53,10 @@ sub get_latest($opt) {
         $display .= "\n";
         
         for my $goal ($game->{goals}->@*) {
-            my $scorer = display_player($goal->{scorer}{player});
+            my $scorer = display_player($goal->{scorer}{player}, $opt);
 
             my $assists = join " and ",
-                map {display_player($_->{player})}
+                map {display_player($_->{player}, $opt)}
                 $goal->{assists}->@*;
 
             my $prefix = $goal->{team} eq $away
@@ -72,9 +74,9 @@ sub get_latest($opt) {
     return $display;
 }
 
-sub display_player($player) {
+sub display_player($player, $opt) {
 
-    state $players = decode_json(path('players.json')->slurp);
+    state $players = decode_json(path($opt->players)->slurp);
 
     # The NHL Stats API
     #     https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md
