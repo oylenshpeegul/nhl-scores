@@ -9,6 +9,10 @@ Inspired by [[https://github.com/Hamatti/nhl-235][nhl-235]]
 #+ATTR_HTML: :alt Running latest-games with no options
 [[./images/lg.png]]
 
+* Down the rabbit hole! 
+
+The original nhl-235 page highlighted the Finnish players in green, apparently. In thinking about how to do that, I thought it might be fun to put a flag for the nationality of every player. Unicode has flags, but my terminal wouldn't display them. I installed [[https://sw.kovidgoyal.net/kitty/][kitty]], which did.
+
 #+ATTR_HTML: :alt Running latest-games with --flags option
 [[./images/lgf.png]]
 
