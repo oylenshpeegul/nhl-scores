@@ -1,7 +1,10 @@
-#+title:  README
+#+title:  nhl-scores
 #+author: Tim Heaney
 #+date:   2021-03-08
 
-* nhl-scores
-*** Summarize latest games from the nhl-score-api
+* Summarize latest games from the [[https://github.com/peruukki/nhl-score-api][nhl-score-api]]
+
+** Inspired by [[https://github.com/Hamatti/nhl-235][nhl-235]]
+
+
 
