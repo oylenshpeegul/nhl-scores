@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+
+use v5.28;
+use warnings;
+use Data::Printer;
+use Mojo::JSON qw(decode_json);
+use Path::Tiny;
+
+my $players = decode_json(path('players.json')->slurp);
+
+my %nationalities;
+
+for my $player (keys $players->%*) {
+    $nationalities{$players->{$player}{nationality}}++;
+}
+
+p %nationalities;
