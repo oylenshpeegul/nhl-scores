@@ -1,2 +1,7 @@
-# nhl-scores
-Summarizie latest games from the nhl-score-api
+#+title:  README
+#+author: Tim Heaney
+#+date:   2021-03-08
+
+* nhl-scores
+*** Summarize latest games from the nhl-score-api
+
