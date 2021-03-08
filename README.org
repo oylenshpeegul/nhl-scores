@@ -6,7 +6,11 @@ Summarize latest games from the [[https://github.com/peruukki/nhl-score-api][nhl
 
 Inspired by [[https://github.com/Hamatti/nhl-235][nhl-235]]
 
+#+ATTR_HTML: :alt Running latest-games with no options
+[[./images/lg.png]]
 
+#+ATTR_HTML: :alt Running latest-games with --flags option
+[[./images/lgf.png]]
 
 
 
