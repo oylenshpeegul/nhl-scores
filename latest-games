@@ -1,0 +1,127 @@
+#!/usr/bin/env perl
+
+use v5.28;
+use warnings;
+use experimental qw(signatures);
+use Encode qw(encode);
+use Getopt::Long::Descriptive;
+use Mojo::JSON qw(decode_json);
+use Mojo::UserAgent;
+use Path::Tiny;
+use Term::ANSIColor;
+
+my ($opt, $usage) = describe_options(
+    '%c %o',
+    ['color_away=s', 'print guests in this color', {default => 'blue'}],
+    ['color_home=s', 'print home team in this color', {default => 'red'}],
+    ['color_game=s', 'print new game line in this color', {default => 'green'}],
+    ['debug|d', "print extra stuff"],
+    ['domain=s', 'the api to connect to',
+     {default => 'https://nhl-score-api.herokuapp.com'}],
+    ['flags|f', "print flag for each player"],
+    ['help|h', "print usage message and exit", {shortcircuit => 1}],
+    ['verbose|v', "print extra stuff"],
+);
+ 
+die $usage->text if $opt->help;
+ 
+say encode('UTF-8', get_latest($opt));
+
+
+sub get_latest($opt) {
+    my $url = Mojo::URL->new($opt->domain . "/api/scores/latest");
+    my $json = Mojo::UserAgent->new->get($url)->result->json;
+
+    my $display;
+    for my $game ($json->{games}->@*) {
+
+        my $home = $game->{teams}{home}{abbreviation};
+        my $away = $game->{teams}{away}{abbreviation};
+
+        my $asterisk = "";
+        $asterisk .= "(OT)" if $game->{scores}{overtime};
+        $asterisk .= "(SO)" if $game->{scores}{shootout};
+        
+        $display .= "\n";
+        $display .= colored([$opt->color_away], $game->{teams}{away}{shortName});
+        $display .= colored([$opt->color_game], ' at ');
+        $display .= colored([$opt->color_home], $game->{teams}{home}{shortName});
+        $display .= colored([$opt->color_game],
+                            " $game->{scores}{$away} - $game->{scores}{$home} $asterisk");
+        $display .= "\n";
+        
+        for my $goal ($game->{goals}->@*) {
+            my $scorer = display_player($goal->{scorer}{player});
+
+            my $assists = join " and ",
+                map {display_player($_->{player})}
+                $goal->{assists}->@*;
+
+            my $prefix = $goal->{team} eq $away
+                ? colored([$opt->color_away], "\N{U+2BC7} ")
+                : colored([$opt->color_home], "    \N{U+2BC8} ");
+            
+            my $suffix = "";
+            $suffix .= " from $assists" if $assists;
+            $suffix .= " (EN)" if $goal->{emptyNet};
+            $suffix .= " ($goal->{strength})" if $goal->{strength};
+            
+            $display .= "$prefix$scorer$suffix\n";
+        }
+    }
+    return $display;
+}
+
+sub display_player($player) {
+
+    state $players = decode_json(path('players.json')->slurp);
+
+    # The NHL Stats API
+    #     https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md
+    # uses (its own?) three-letter codes for nationalities.
+    #
+    # In Unicode, combinations of regional indicator symbols create
+    # flags.
+    #     https://en.wikipedia.org/wiki/Regional_indicator_symbol
+    # Most of those are two letters.
+    #
+    # This maps the three-letter codes to the two-letter symbols.
+    #
+    state %flags = (
+        AUS => "\N{REGIONAL INDICATOR SYMBOL LETTER A}\N{REGIONAL INDICATOR SYMBOL LETTER U}",
+        AUT => "\N{REGIONAL INDICATOR SYMBOL LETTER A}\N{REGIONAL INDICATOR SYMBOL LETTER T}",
+        BLR => "\N{REGIONAL INDICATOR SYMBOL LETTER B}\N{REGIONAL INDICATOR SYMBOL LETTER Y}",
+        CAN => "\N{REGIONAL INDICATOR SYMBOL LETTER C}\N{REGIONAL INDICATOR SYMBOL LETTER A}",
+        CHE => "\N{REGIONAL INDICATOR SYMBOL LETTER C}\N{REGIONAL INDICATOR SYMBOL LETTER H}",
+        CZE => "\N{REGIONAL INDICATOR SYMBOL LETTER C}\N{REGIONAL INDICATOR SYMBOL LETTER Z}",
+        DEU => "\N{REGIONAL INDICATOR SYMBOL LETTER D}\N{REGIONAL INDICATOR SYMBOL LETTER E}",
+        DNK => "\N{REGIONAL INDICATOR SYMBOL LETTER D}\N{REGIONAL INDICATOR SYMBOL LETTER K}",
+        FIN => "\N{REGIONAL INDICATOR SYMBOL LETTER F}\N{REGIONAL INDICATOR SYMBOL LETTER I}",
+        LVA => "\N{REGIONAL INDICATOR SYMBOL LETTER L}\N{REGIONAL INDICATOR SYMBOL LETTER V}",
+        NLD => "\N{REGIONAL INDICATOR SYMBOL LETTER N}\N{REGIONAL INDICATOR SYMBOL LETTER L}",
+        NOR => "\N{REGIONAL INDICATOR SYMBOL LETTER N}\N{REGIONAL INDICATOR SYMBOL LETTER O}",
+        RUS => "\N{REGIONAL INDICATOR SYMBOL LETTER R}\N{REGIONAL INDICATOR SYMBOL LETTER U}",
+        SVK => "\N{REGIONAL INDICATOR SYMBOL LETTER S}\N{REGIONAL INDICATOR SYMBOL LETTER K}",
+        SVN => "\N{REGIONAL INDICATOR SYMBOL LETTER S}\N{REGIONAL INDICATOR SYMBOL LETTER I}",
+        SWE => "\N{REGIONAL INDICATOR SYMBOL LETTER S}\N{REGIONAL INDICATOR SYMBOL LETTER E}",
+        USA => "\N{REGIONAL INDICATOR SYMBOL LETTER U}\N{REGIONAL INDICATOR SYMBOL LETTER S}",
+    );
+
+    my $display;
+    
+    if (exists $players->{$player}) {
+        $display = $players->{$player}{lastName};
+        if ($opt->flags) {
+            if (exists $flags{$players->{$player}{nationality}}) {
+                $display .= " $flags{$players->{$player}{nationality}}";
+            } else {
+                $display .= " ($players->{$player}{nationality})";
+            }
+        }
+    } else {
+        my @f = split ' ', $player;
+        $display = $f[-1];
+    }
+
+    return $display;
+}
