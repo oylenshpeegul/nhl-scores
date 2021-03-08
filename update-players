@@ -1,0 +1,60 @@
+#!/usr/bin/env perl
+
+use v5.28;
+use warnings;
+use experimental qw(signatures);
+use Getopt::Long::Descriptive;
+use Interpolation E => 'eval';
+use Mojo::JSON qw(encode_json);
+use Mojo::UserAgent;
+use Path::Tiny;
+
+my ($opt, $usage) = describe_options(
+  '%c %o',
+  ['debug|d', "print extra stuff"],
+  ['domain=s', 'the api to connect to',
+   {default => 'https://statsapi.web.nhl.com'}],
+  ['output=s', 'the file to write to',
+   {default => './players.json'}],
+  ['help|h', "print usage message and exit", {shortcircuit => 1}],
+  ['verbose|v', "print extra stuff"],
+);
+ 
+die $usage->text if $opt->help;
+ 
+my $ua = Mojo::UserAgent->new;
+
+warn "Getting teams...\n" if $opt->debug or $opt->verbose;
+my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/teams");
+my $json = $ua->get($url)->result->json;
+my %teams = map {$_->{abbreviation} => $_->{id}} $json->{teams}->@*;
+
+warn "Getting rosters for each team...\n" if $opt->debug or $opt->verbose;
+my %rosters;
+for my $team (keys %teams) {
+    my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/teams/$teams{$team}/roster");
+    my $json = $ua->get($url)->result->json;
+    my %roster = map {
+        $_->{person}{fullName} => $_->{person}{id}
+    } $json->{roster}->@*;
+    $rosters{$team} = \%roster;
+}
+
+warn "Getting players for each roster...\n" if $opt->debug or $opt->verbose;
+my %players;
+for my $team (keys %rosters) {
+    for my $player (keys $rosters{$team}->%*) {
+        my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/people/$rosters{$team}{$player}");
+        my $json = $ua->get($url)->result->json;
+        for my $person ($json->{people}->@*) {
+            $players{$player} = {
+                lastName => $person->{lastName},
+                nationality => $person->{nationality},
+            };
+        }
+    }
+}
+
+warn "Writing players to file '$E{$opt->output}'...\n"
+    if $opt->debug or $opt->verbose;
+path($opt->output)->spew(encode_json \%players);
