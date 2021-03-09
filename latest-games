@@ -59,9 +59,12 @@ sub get_latest($opt) {
                 map {display_player($_->{player}, $opt)}
                 $goal->{assists}->@*;
 
-            my $prefix = $goal->{team} eq $away
-                ? colored([$opt->color_away], "\N{U+2BC7} ")
-                : colored([$opt->color_home], "    \N{U+2BC8} ");
+            my $prefix = sprintf("%2s ", $goal->{period}); 
+            $prefix .= defined $goal->{min} ? sprintf("%2s", $goal->{min}) : "  ";
+            $prefix .= defined $goal->{sec} ? sprintf(":%02s", $goal->{sec}) : "   ";
+            $prefix .= $goal->{team} eq $away
+                ? colored([$opt->color_away], " \N{U+2BC7} ")
+                : colored([$opt->color_home], "     \N{U+2BC8} ");
             
             my $suffix = "";
             $suffix .= " from $assists" if $assists;
