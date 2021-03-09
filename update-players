@@ -3,9 +3,11 @@
 use v5.28;
 use warnings;
 use experimental qw(signatures);
+use Data::Printer;
+use Encode qw(encode);
 use Getopt::Long::Descriptive;
 use Interpolation E => 'eval';
-use Mojo::JSON qw(encode_json);
+use Mojo::JSON qw(decode_json encode_json);
 use Mojo::UserAgent;
 use Path::Tiny;
 
@@ -14,22 +16,24 @@ my ($opt, $usage) = describe_options(
   ['debug|d', "print extra stuff"],
   ['domain=s', 'the api to connect to',
    {default => 'https://statsapi.web.nhl.com'}],
-  ['output=s', 'the file to write to',
-   {default => './players.json'}],
+  ['path=s', 'path to players file', {default => './players.json'}],
   ['help|h', "print usage message and exit", {shortcircuit => 1}],
   ['verbose|v', "print extra stuff"],
 );
  
 die $usage->text if $opt->help;
- 
+
+my $path = path($opt->path);
+my $players = $path->is_file ? decode_json($path->slurp) : "";
+
 my $ua = Mojo::UserAgent->new;
 
-warn "Getting teams...\n" if $opt->debug or $opt->verbose;
+say "Getting teams..." if $opt->verbose;
 my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/teams");
 my $json = $ua->get($url)->result->json;
 my %teams = map {$_->{abbreviation} => $_->{id}} $json->{teams}->@*;
 
-warn "Getting rosters for each team...\n" if $opt->debug or $opt->verbose;
+say "Getting rosters for each team..." if $opt->verbose;
 my %rosters;
 for my $team (keys %teams) {
     my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/teams/$teams{$team}/roster");
@@ -40,21 +44,27 @@ for my $team (keys %teams) {
     $rosters{$team} = \%roster;
 }
 
-warn "Getting players for each roster...\n" if $opt->debug or $opt->verbose;
-my %players;
+say "Getting players for each roster..." if $opt->verbose;
 for my $team (keys %rosters) {
     for my $player (keys $rosters{$team}->%*) {
-        my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/people/$rosters{$team}{$player}");
-        my $json = $ua->get($url)->result->json;
-        for my $person ($json->{people}->@*) {
-            $players{$player} = {
-                lastName => $person->{lastName},
-                nationality => $person->{nationality},
-            };
+        # This will fail when two players have the same name.
+        if (exists $players->{$player}) {
+            warn "$player exists\n" if $opt->debug;
+        } else {
+            say "new player: ", encode('UTF-8', $player) if $opt->verbose;
+            my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/people/$rosters{$team}{$player}");
+            my $json = $ua->get($url)->result->json;
+            # Why do we have a list of players with the same id?
+            # We can have name collisions, but not id collisions, right?
+            for my $person ($json->{people}->@*) {
+                $players->{$player} = {
+                    lastName => $person->{lastName},
+                    nationality => $person->{nationality},
+                };
+            }
         }
     }
 }
 
-warn "Writing players to file '$E{$opt->output}'...\n"
-    if $opt->debug or $opt->verbose;
-path($opt->output)->spew(encode_json \%players);
+say "Writing players to file '$path'..." if $opt->verbose;
+$path->spew(encode_json $players);
