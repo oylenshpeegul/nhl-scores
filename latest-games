@@ -79,8 +79,10 @@ sub get_latest($opt) {
 
 sub display_player($player, $opt) {
 
-    state $players = decode_json(path($opt->players)->slurp);
-
+    # state $players = decode_json(path($opt->players)->slurp);
+    state $path = path($opt->players);
+    state $players = $path->is_file ? decode_json($path->slurp) : {};
+    
     # The NHL Stats API
     #     https://gitlab.com/dword4/nhlapi/-/blob/master/stats-api.md
     # uses (its own?) three-letter codes for nationalities.
@@ -120,7 +122,7 @@ sub display_player($player, $opt) {
     $display .= " ($player->{seasonTotal})"
         if $opt->season_totals and $player->{seasonTotal};
 
-    if ($opt->flags) {
+    if ($opt->flags and exists $players->{$player->{player}}) {
         if (exists $flags{$players->{$player->{player}}{nationality}}) {
             $display .= " $flags{$players->{$player->{player}}{nationality}}";
         } else {
