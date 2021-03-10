@@ -116,7 +116,8 @@ sub display_player($player, $opt) {
         ? $players->{$player->{player}}{lastName}
         : (split ' ', $player->{player})[-1];
 
-    $display .= " ($player->{seasonTotal})" if $opt->season_totals;
+    $display .= " ($player->{seasonTotal})"
+        if $opt->season_totals and $player->{seasonTotal};
 
     if ($opt->flags) {
         if (exists $flags{$players->{$player->{player}}{nationality}}) {
