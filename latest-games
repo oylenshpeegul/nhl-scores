@@ -17,11 +17,11 @@ my ($opt, $usage) = describe_options(
     ['color_home=s', 'print home team in this color', {default => 'red'}],
     ['color_game=s', 'print new game line in this color', {default => 'green'}],
     ['debug|d', "print extra stuff"],
-    ['domain=s', 'the api to connect to',
-     {default => 'https://nhl-score-api.herokuapp.com'}],
+    ['domain=s', 'the api to connect to', {default => 'https://nhl-score-api.herokuapp.com'}],
     ['flags|f', "print flag for each player"],
     ['help|h', "print usage message and exit", {shortcircuit => 1}],
     ['players=s', 'path to players file', {default => "$Bin/players.json"}],
+    ['season_totals|s', "print season totals for each player"],
     ['verbose|v', "print extra stuff"],
 );
  
@@ -54,9 +54,14 @@ sub get_latest($opt) {
         
         for my $goal ($game->{goals}->@*) {
             my $scorer = display_player($goal->{scorer}{player}, $opt);
+            $scorer .= " ($goal->{scorer}{seasonTotal})" if $opt->season_totals;
 
             my $assists = join " and ",
-                map {display_player($_->{player}, $opt)}
+                map {
+                    my $p = display_player($_->{player}, $opt);
+                    $p .= " ($_->{seasonTotal})" if $opt->season_totals;
+                    $p
+                 }
                 $goal->{assists}->@*;
 
             my $prefix = sprintf("%2s ", $goal->{period}); 
