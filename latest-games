@@ -53,15 +53,10 @@ sub get_latest($opt) {
         $display .= "\n";
         
         for my $goal ($game->{goals}->@*) {
-            my $scorer = display_player($goal->{scorer}{player}, $opt);
-            $scorer .= " ($goal->{scorer}{seasonTotal})" if $opt->season_totals;
+            my $scorer = display_player($goal->{scorer}, $opt);
 
             my $assists = join " and ",
-                map {
-                    my $p = display_player($_->{player}, $opt);
-                    $p .= " ($_->{seasonTotal})" if $opt->season_totals;
-                    $p
-                 }
+                map { display_player($_, $opt) } 
                 $goal->{assists}->@*;
 
             my $prefix = sprintf("%2s ", $goal->{period}); 
@@ -117,20 +112,18 @@ sub display_player($player, $opt) {
         USA => "\N{REGIONAL INDICATOR SYMBOL LETTER U}\N{REGIONAL INDICATOR SYMBOL LETTER S}",
     );
 
-    my $display;
-    
-    if (exists $players->{$player}) {
-        $display = $players->{$player}{lastName};
-        if ($opt->flags) {
-            if (exists $flags{$players->{$player}{nationality}}) {
-                $display .= " $flags{$players->{$player}{nationality}}";
-            } else {
-                $display .= " ($players->{$player}{nationality})";
-            }
+    my $display = exists $players->{$player->{player}}
+        ? $players->{$player->{player}}{lastName}
+        : (split ' ', $player->{player})[-1];
+
+    $display .= " ($player->{seasonTotal})" if $opt->season_totals;
+
+    if ($opt->flags) {
+        if (exists $flags{$players->{$player->{player}}{nationality}}) {
+            $display .= " $flags{$players->{$player->{player}}{nationality}}";
+        } else {
+            $display .= " ($players->{$player->{player}}{nationality})";
         }
-    } else {
-        my @f = split ' ', $player;
-        $display = $f[-1];
     }
 
     return $display;
