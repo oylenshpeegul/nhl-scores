@@ -49,7 +49,7 @@ for my $team (keys %rosters) {
     for my $player (keys $rosters{$team}->%*) {
         # This will fail when two players have the same name.
         if (exists $players->{$player}) {
-            warn "$player exists\n" if $opt->debug;
+            say STDERR "player exists: ", encode('UTF-8', $player) if $opt->debug;
         } else {
             say "new player: ", encode('UTF-8', $player) if $opt->verbose;
             my $url = Mojo::URL->new("$E{$opt->domain}/api/v1/people/$rosters{$team}{$player}");
