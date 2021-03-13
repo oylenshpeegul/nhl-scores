@@ -26,9 +26,12 @@ my ($opt, $usage) = describe_options(
 );
  
 die $usage->text if $opt->help;
- 
-say encode('UTF-8', get_latest($opt));
 
+if (my $s = get_latest($opt)) {
+    say encode('UTF-8', $s);
+} else {
+    say "No games found?"
+}
 
 sub get_latest($opt) {
     my $url = Mojo::URL->new($opt->domain . "/api/scores/latest");
